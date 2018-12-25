@@ -1,0 +1,14 @@
+{
+  "name": "sp-instagraph",
+  "version": "1.0.0",
+  "description": "SP InstaGraph",
+  "main": "src/index.js",
+  "repository": "https://github.com/valarao/sp-instagraph.git",
+  "author": "Miguel Valarao",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "puppeteer": "^1.11.0"
+  }
+}
