@@ -7,6 +7,7 @@ namespace pleaseWork
     {
         const double MAX_SCALE_FACTOR = 1.05; // Adjusts how high the top of chart is from max price
         const double MIN_SCALE_FACTOR = 0.95; // Adjusts how low the bottom of chart is from min price
+        const string COMPANY_TICKER = "FB";
 
         /// <summary>
         /// Run application to process XLSX file.
@@ -17,7 +18,7 @@ namespace pleaseWork
         }
 
         /// <summary>
-        /// Deletes unused columns and constructs formatted line chart given company's historical stock prices.
+        /// Construct formatted line chart given company's historical stock prices and create summary box.
         /// </summary>
         static void processFile() {
             // Declare common sheet variables 
@@ -31,23 +32,33 @@ namespace pleaseWork
             // Execute process
             formatDataBackground(sheet, rowCount);
             formatHeaders(sheet);
-            formatDataArrays(sheet);
+            formatDataArrays(sheet, rowCount);
             formatDataTitles(sheet);
             formatSummaryBox(sheet);
             makeChart(sheet, misValue, rowCount);
             setSummaryBoxValues(sheet, rowCount);
-            formatSummaryBoxNumbers(sheet);
+            formatSummaryBoxValues(sheet);
             defaultView(sheet, book, excel);
         }
 
+        /// <summary>
+        /// Turn CSV data into XLSX file for Interop manipulation.
+        /// </summary>
+        /// <param name="excel">Excel Application</param>
+        /// <returns>Original CSV data converted into XLSX file.</returns>
         static Excel.Workbook convertCSVtoXLSX(Excel.Application excel) {
-            Excel.Workbook bookCSV = excel.Workbooks.Open("C:\\Temp\\AAPL2.csv");
-            bookCSV.SaveAs("C:\\Temp\\AAPLFormatted11.xlsx", Excel.XlFileFormat.xlOpenXMLWorkbook, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+            Excel.Workbook bookCSV = excel.Workbooks.Open("C:\\Temp\\" + COMPANY_TICKER + ".csv");
+            bookCSV.SaveAs("C:\\Temp\\Formatted" + COMPANY_TICKER + "Chart.xlsx", Excel.XlFileFormat.xlOpenXMLWorkbook, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
                 Excel.XlSaveAsAccessMode.xlExclusive, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
             bookCSV.Close();
-            return excel.Workbooks.Open("C:\\Temp\\AAPLFormatted11.xlsx");
+            return excel.Workbooks.Open("C:\\Temp\\Formatted" + COMPANY_TICKER + "Chart.xlsx");
         }
 
+        /// <summary>
+        /// Format the used area to have a white background.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
         static void formatDataBackground(Excel.Worksheet sheet, int rowCount)
         {
             int stopPoint = rowCount + 1;
@@ -56,6 +67,10 @@ namespace pleaseWork
             bgRange.Interior.Color = Excel.XlRgbColor.rgbWhite;
         }
 
+        /// <summary>
+        /// Format the Instagraph title headers.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void formatHeaders(Excel.Worksheet sheet) {
             Excel.Range totalHeaderRange = sheet.get_Range("I2:R5", Type.Missing);
             totalHeaderRange.BorderAround2(Excel.XlLineStyle.xlContinuous, Excel.XlBorderWeight.xlThick);
@@ -78,6 +93,10 @@ namespace pleaseWork
                 "or too lazy to format an Excel chart themselves.";
         }
 
+        /// <summary>
+        /// Format the data title headers: Date, Open, Low, High, Close, Adjusted Close, Volume.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void formatDataTitles(Excel.Worksheet sheet) {
             Excel.Range titleRange = sheet.get_Range("A1:G1", Type.Missing);
             titleRange.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
@@ -87,26 +106,29 @@ namespace pleaseWork
         }
 
         /// <summary>
-        /// Deletes the 4 unused columns: Open, Low, High, Close
-        /// </summary>
-        /// <param name="sheet">Excel worksheet with pricing data.</param>
-        static void formatDataArrays(Excel.Worksheet sheet) {
-            formatArray(sheet, "A:A", 1, 12.21, "date"); // date
-            formatArray(sheet, "B:B", 2, 10.00, "price"); // open
-            formatArray(sheet, "C:C", 3, 10.00, "price"); // high
-            formatArray(sheet, "D:D", 4, 10.00, "price"); // low
-            formatArray(sheet, "E:E", 5, 10.00, "price"); // close
-            formatArray(sheet, "F:F", 6, 10.00, "price"); // adjusted close
-            formatArray(sheet, "G:G", 7, 10.50, "thousand"); // volume
-        }
-
-        /// <summary>
-        /// Format column width and number formats.
+        /// Format the width, background color, and number format of data cells.
         /// </summary>
         /// <param name="sheet">Excel worksheet with pricing data.</param>
         /// <param name="rowCount">Number of rows filled with data.</param>
-        static void formatArray(Excel.Worksheet sheet, string range, int col, double colWidth, string type) {
+        static void formatDataArrays(Excel.Worksheet sheet, int rowCount) {
+            formatArray(sheet, rowCount, "A", 12.21, System.Drawing.Color.FromArgb(250, 250, 250), "date"); // date
+            formatArray(sheet, rowCount, "B", 10.00, System.Drawing.Color.FromArgb(255, 255, 255), "price"); // open
+            formatArray(sheet, rowCount, "C", 10.00, System.Drawing.Color.FromArgb(230, 241, 223), "price"); // high
+            formatArray(sheet, rowCount, "D", 10.00, System.Drawing.Color.FromArgb(255, 185, 185), "price"); // low
+            formatArray(sheet, rowCount, "E", 10.00, System.Drawing.Color.FromArgb(221, 235, 247), "price"); // close
+            formatArray(sheet, rowCount, "F", 10.00, System.Drawing.Color.FromArgb(217, 225, 242), "price"); // adjusted close
+            formatArray(sheet, rowCount, "G", 10.50, System.Drawing.Color.FromArgb(255, 242, 204), "thousand"); // volume
+        }
+
+        /// <summary>
+        /// Format specific array based on given column, color, and number format type.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
+        static void formatArray(Excel.Worksheet sheet, int rowCount, string col, double colWidth, System.Drawing.Color color, string type) {
+            string range = col + "2:" + col + rowCount;
             Excel.Range arrayRange = sheet.get_Range(range, Type.Missing);
+            arrayRange.Interior.Color = color;
             arrayRange.EntireColumn.ColumnWidth = colWidth;
             string format;
             if (type.Equals("date")) {
@@ -121,6 +143,10 @@ namespace pleaseWork
             arrayRange.NumberFormat = format;
         }
 
+        /// <summary>
+        /// Format the base layout for the summary box.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void formatSummaryBox(Excel.Worksheet sheet) {
             formatSummaryBoxColumns(sheet);
             drawSummaryBox(sheet);
@@ -128,6 +154,10 @@ namespace pleaseWork
             setSummaryBoxDataTitles(sheet);
         }
 
+        /// <summary>
+        /// Format the non-default widths of data-filled summary box columns.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void formatSummaryBoxColumns(Excel.Worksheet sheet) {
             sheet.get_Range("H:H", Type.Missing).EntireColumn.ColumnWidth = 2.58;
             sheet.get_Range("I:I", Type.Missing).EntireColumn.ColumnWidth = 2.58;
@@ -135,12 +165,20 @@ namespace pleaseWork
             sheet.get_Range("K:K", Type.Missing).EntireColumn.ColumnWidth = 10.25;
         }
 
+        /// <summary>
+        /// Make the border for the summary box.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void drawSummaryBox(Excel.Worksheet sheet) {
             Excel.Range boxRange = sheet.get_Range("I7:R25", Type.Missing);
             boxRange.Interior.Color = System.Drawing.Color.FromArgb(250, 250, 250);
             boxRange.BorderAround2(Excel.XlLineStyle.xlDash, Excel.XlBorderWeight.xlThick);
         }
 
+        /// <summary>
+        /// Format the main title of the summary box.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void formatSummaryBoxTitle(Excel.Worksheet sheet)
         {
             Excel.Range titleRange = sheet.get_Range("J8:Q8", Type.Missing);
@@ -152,6 +190,10 @@ namespace pleaseWork
             titleRange.EntireRow.RowHeight = 14.40;
         }
 
+        /// <summary>
+        /// Set the data section titles of the summary box.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
         static void setSummaryBoxDataTitles(Excel.Worksheet sheet) {
             sheet.get_Range("J13:J13", Type.Missing).Value = "Company";
             sheet.get_Range("J14:J14", Type.Missing).Value = "Date";
@@ -213,7 +255,7 @@ namespace pleaseWork
         /// </summary>
         /// <param name="sheet">Excel worksheet with pricing data.</param>
         /// <param name="rowCount">Number of rows filled with data.</param>
-        /// <returns></returns>
+        /// <returns>Number format for the price chart.</returns>
         static string choosePriceFormat(Excel.Worksheet sheet, int rowCount)
         {
             double min = findMin(sheet, rowCount);
@@ -287,10 +329,15 @@ namespace pleaseWork
             return minPrice;
         }
 
+        /// <summary>
+        /// Set summary box values given company price data.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
         static void setSummaryBoxValues(Excel.Worksheet sheet, int rowCount) {
             string lastDate = "A" + rowCount + ":A" + rowCount;
             string lastPrice = "F" + rowCount + ":F" + rowCount;
-            sheet.get_Range("K13:K13", Type.Missing).Value = "AAPL";
+            sheet.get_Range("K13:K13", Type.Missing).Value = COMPANY_TICKER;
             sheet.get_Range("K14:K14", Type.Missing).Value = sheet.get_Range(lastDate, Type.Missing).Value;
             sheet.get_Range("K16:K16", Type.Missing).Value = sheet.get_Range(lastPrice, Type.Missing).Value;
             sheet.get_Range("K17:K17", Type.Missing).Value = findMax(sheet, rowCount);
@@ -298,6 +345,12 @@ namespace pleaseWork
             sheet.get_Range("K20:K20", Type.Missing).Value = Math.Round(findADTV(sheet, rowCount));
         }
 
+        /// <summary>
+        /// Find average daily trading volume (ADTV) over the past year.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
+        /// <returns>Average daily trading volume (ADTV) over the past year</returns>
         static double findADTV(Excel.Worksheet sheet, int rowCount)
         {
             double sum = 0;
@@ -311,7 +364,11 @@ namespace pleaseWork
             return sum;
         }
 
-        static void formatSummaryBoxNumbers(Excel.Worksheet sheet) {
+        /// <summary>
+        /// Format summary box company cell text alignment and other cell number formats.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        static void formatSummaryBoxValues(Excel.Worksheet sheet) {
             sheet.get_Range("K13:K13", Type.Missing).HorizontalAlignment = Excel.XlHAlign.xlHAlignRight; // Company
             sheet.get_Range("K14:K14", Type.Missing).NumberFormat = "m/d/yyyy"; // Date
             sheet.get_Range("K16:K16", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_($* '-'??_);_(@_)"; // Last price
