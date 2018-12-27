@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2003
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InstagraphAddIn", "InstagraphAddIn\InstagraphAddIn.csproj", "{B11415F4-37FC-4C55-80C8-71A3298496B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B11415F4-37FC-4C55-80C8-71A3298496B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B11415F4-37FC-4C55-80C8-71A3298496B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B11415F4-37FC-4C55-80C8-71A3298496B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B11415F4-37FC-4C55-80C8-71A3298496B1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9BEBB5F7-2675-4805-B9FD-E144E8FA8FD4}
+	EndGlobalSection
+EndGlobal

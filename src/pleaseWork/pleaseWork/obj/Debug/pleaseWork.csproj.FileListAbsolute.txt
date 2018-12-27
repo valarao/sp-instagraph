@@ -1,9 +1,0 @@
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\bin\Debug\pleaseWork.exe.config
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\bin\Debug\pleaseWork.exe
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\bin\Debug\pleaseWork.pdb
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\bin\Debug\Microsoft.VisualStudio.Tools.Applications.Runtime.dll
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\obj\Debug\pleaseWork.csprojAssemblyReference.cache
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\obj\Debug\pleaseWork.csproj.CoreCompileInputs.cache
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\obj\Debug\pleaseWork.csproj.CopyComplete
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\obj\Debug\pleaseWork.exe
-C:\Users\migue\source\repos\pleaseWork\pleaseWork\obj\Debug\pleaseWork.pdb
