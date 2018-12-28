@@ -11,13 +11,10 @@ using System.Threading.Tasks;
 
 namespace InstagraphAddIn
 {
-   
-
     public partial class Ribbon1
     {
         const double MAX_SCALE_FACTOR = 1.05; // Adjusts how high the top of chart is from max price
         const double MIN_SCALE_FACTOR = 0.95; // Adjusts how low the bottom of chart is from min price
-                                              // const string COMPANY_TICKER = "BBW";
 
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
@@ -31,9 +28,11 @@ namespace InstagraphAddIn
             string company = excel.Application.InputBox("What is the company's ticker?").ToUpper();
             string exchange = excel.Application.InputBox("What exchange is it on? (NYSE, NASDAQ, TSX, CVE)").ToUpper();
             exchange = checkExchange(exchange);
-            setTitles(sheet);
-            await parseData(sheet, company, exchange);
-            processFile(sheet, company);
+            if (company != "" && company != null && exchange != null) { 
+                setTitles(sheet);
+                await parseData(sheet, company, exchange);
+                processFile(sheet, company);
+            }
 
         }
 
@@ -44,10 +43,10 @@ namespace InstagraphAddIn
         /// <returns>Exchange extension for URL input.</returns>
         private static string checkExchange(string exchange)
         {
-            if (exchange.Equals("TSX") || exchange.Equals("TSE"))
+            if (exchange.Equals("TSX") || exchange.Equals("TSE") || exchange.Equals("TO"))
             {
                 return "TO";
-            } else if (exchange.Equals("CVE")) {
+            } else if (exchange.Equals("CVE") || exchange.Equals("V")) {
                 return "V";
             }
             else {
@@ -152,12 +151,11 @@ namespace InstagraphAddIn
         }
 
         /// <summary>
-        /// Parse
+        /// Fill data matrix for the corresponding quarter.
         /// </summary>
-        /// <param name="sheet"></param>
-        /// <param name="htmlDocument"></param>
-        /// <param name="rowCount"></param>
-        /// <returns></returns>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="htmlDocument">Parsable HTML data.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
         private static void transcribeMatrix(Worksheet sheet, HtmlDocument htmlDocument, int rowCount)
         {
             var dataHtml = htmlDocument.DocumentNode.Descendants("table")
@@ -189,6 +187,11 @@ namespace InstagraphAddIn
             };
         }
 
+        /// <summary>
+        /// Given parsed data, perform formatting, build summary box, and chart.
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="company"></param>
         static void processFile(Worksheet sheet, string company)
         {
             object misValue = System.Reflection.Missing.Value;
@@ -242,7 +245,7 @@ namespace InstagraphAddIn
             subheaderRange.Font.Italic = true;
             subheaderRange.HorizontalAlignment = XlHAlign.xlHAlignCenter;
             subheaderRange.Font.Size = 10;
-            subheaderRange.Value = "For finance nerds too broke to afford Bloomberg/CapIQ " +
+            subheaderRange.Value = "For finance geeks too broke to afford Bloomberg/CapIQ " +
                 "or too lazy to format an Excel chart themselves.";
         }
 
@@ -466,15 +469,10 @@ namespace InstagraphAddIn
         /// <returns>Maximum adjusted price over the past year.</returns>
         static double findMax(Worksheet sheet, int rowCount)
         {
-            double maxPrice = 0;
-            for (int i = 2; i < rowCount + 1; i++)
-            {
-                var cellValueStr = (double)(sheet.Cells[i, 6] as Range).Value;
-                double cellValue = Convert.ToDouble(cellValueStr);
-
-                if (cellValue > maxPrice)
-                    maxPrice = cellValue;
-            }
+            string dummyRange = "N200:N200";
+            sheet.get_Range(dummyRange, Type.Missing).Value = "=max(F2:F" + rowCount + ")";
+            var maxPrice = (double)sheet.get_Range(dummyRange, Type.Missing).Value;
+            sheet.get_Range(dummyRange, Type.Missing).Clear();
             return maxPrice;
         }
 
@@ -486,15 +484,10 @@ namespace InstagraphAddIn
         /// <returns>Minimum adjusted price over the past year.</returns>
         static double findMin(Worksheet sheet, int rowCount)
         {
-            double minPrice = 1000;
-            for (int i = 2; i < rowCount + 1; i++)
-            {
-                var cellValueStr = (double)(sheet.Cells[i, 6] as Range).Value;
-                double cellValue = Convert.ToDouble(cellValueStr);
-
-                if (cellValue < minPrice)
-                    minPrice = cellValue;
-            }
+            string dummyRange = "N200:N200";
+            sheet.get_Range(dummyRange, Type.Missing).Value = "=min(F2:F" + rowCount + ")";
+            var minPrice = (double)sheet.get_Range(dummyRange, Type.Missing).Value;
+            sheet.get_Range(dummyRange, Type.Missing).Clear();
             return minPrice;
         }
 
@@ -516,25 +509,6 @@ namespace InstagraphAddIn
         }
 
         /// <summary>
-        /// Find average daily trading volume (ADTV) over the past year.
-        /// </summary>
-        /// <param name="sheet">Excel worksheet with pricing data.</param>
-        /// <param name="rowCount">Number of rows filled with data.</param>
-        /// <returns>Average daily trading volume (ADTV) over the past year</returns>
-        static double findADTV(Worksheet sheet, int rowCount)
-        {
-            double sum = 0;
-            double count = rowCount - 1;
-            for (int i = 2; i < rowCount + 1; i++)
-            {
-                var cellValueStr = (double)(sheet.Cells[i, 7] as Range).Value;
-                double cellValue = Convert.ToDouble(cellValueStr);
-                sum += (cellValue / count);
-            }
-            return sum;
-        }
-
-        /// <summary>
         /// Format summary box company cell text alignment and other cell number formats.
         /// </summary>
         /// <param name="sheet">Excel worksheet with pricing data.</param>
@@ -547,11 +521,5 @@ namespace InstagraphAddIn
             sheet.get_Range("K18:K18", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_(@_)"; // Low
             sheet.get_Range("K20:K20", Type.Missing).NumberFormat = "_(* #,##0_);_(* (#,##0);_(@_)"; // ADTV
         }
-
-
-
-
-
-
     }
 }
