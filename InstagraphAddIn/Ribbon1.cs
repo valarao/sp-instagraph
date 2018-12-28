@@ -19,8 +19,6 @@ namespace InstagraphAddIn
         const double MIN_SCALE_FACTOR = 0.95; // Adjusts how low the bottom of chart is from min price
                                               // const string COMPANY_TICKER = "BBW";
 
-        // Application excel = new Application();
-
         private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
         {
 
@@ -31,7 +29,7 @@ namespace InstagraphAddIn
             Application excel = new Application();
             Worksheet sheet = Globals.ThisAddIn.GetActiveWorksheet();
             string company = excel.Application.InputBox("What is the company's ticker?").ToUpper();
-            string exchange = excel.Application.InputBox("What exchange is it on? (NYSE, NASDAQ, TO, V)").ToUpper();
+            string exchange = excel.Application.InputBox("What exchange is it on? (NYSE, NASDAQ, TSX, CVE)").ToUpper();
             exchange = checkExchange(exchange);
             setTitles(sheet);
             await parseData(sheet, company, exchange);
@@ -39,17 +37,30 @@ namespace InstagraphAddIn
 
         }
 
-        private static string checkExchange(string exchange) {
-            if (exchange.Equals("V") || exchange.Equals("TO"))
+        /// <summary>
+        /// Find the exchange extension required for URL, if any. 
+        /// </summary>
+        /// <param name="exchange">Exchange on which target company trades on.</param>
+        /// <returns>Exchange extension for URL input.</returns>
+        private static string checkExchange(string exchange)
+        {
+            if (exchange.Equals("TSX") || exchange.Equals("TSE"))
             {
-                return exchange;
+                return "TO";
+            } else if (exchange.Equals("CVE")) {
+                return "V";
             }
             else {
                 return "";
             }
         }
 
-        private void setTitles(Worksheet sheet) {
+        /// <summary>
+        /// Set titles for data arrays: Date, Open, High, Low, Close, Adj Close, Volume.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        private void setTitles(Worksheet sheet)
+        {
             sheet.get_Range("A:G", Type.Missing).Clear();
             sheet.get_Range("A1:A1", Type.Missing).Value = "Date";
             sheet.get_Range("B1:B1", Type.Missing).Value = "Open";
@@ -60,7 +71,14 @@ namespace InstagraphAddIn
             sheet.get_Range("G1:G1", Type.Missing).Value = "Volume";
         }
 
-        private async Task parseData(Worksheet sheet, string company, string exchange) {
+        /// <summary>
+        /// Parse HTML data into Excel worksheet.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="company">Ticker of target company.</param>
+        /// <param name="exchange">Exchange extension for URL input.</returns>
+        private async Task parseData(Worksheet sheet, string company, string exchange)
+        {
             int rowCount = 0;
             var today = convertToUnix(0);
             var threeMonthsPrior = convertToUnix(3);
@@ -71,22 +89,13 @@ namespace InstagraphAddIn
             await getAllHTMLData(sheet, company, exchange, today, threeMonthsPrior, sixMonthsPrior,
                 nineMonthsPrior, twelveMonthsPrior, rowCount);
             rowCount = sheet.UsedRange.Rows.Count;
-
-            Console.ReadLine();
         }
 
-        private static async Task getAllHTMLData(Worksheet sheet, string company, string exchange, int today,
-            int threeMonthsPrior, int sixMonthsPrior, int nineMonthsPrior, int twelveMonthsPrior, int rowCount)
-        {
-            await getHTMLData(sheet, company, exchange, threeMonthsPrior, today, rowCount); // Run quarterly
-            rowCount = sheet.UsedRange.Rows.Count;
-            await getHTMLData(sheet, company, exchange, sixMonthsPrior, threeMonthsPrior, rowCount); // Run quarterly
-            rowCount = sheet.UsedRange.Rows.Count;
-            await getHTMLData(sheet, company, exchange, nineMonthsPrior, sixMonthsPrior, rowCount); // Run quarterly
-            rowCount = sheet.UsedRange.Rows.Count;
-            await getHTMLData(sheet, company, exchange, twelveMonthsPrior, nineMonthsPrior, rowCount); // Run quarterly
-        }
-
+        /// <summary>
+        /// Retrieve a Unix time based on how many months before current date.
+        /// </summary>
+        /// <param name="timePeriod">Months before current date.</param>
+        /// <returns>Date in Unix time.</returns>
         private static Int32 convertToUnix(int timePeriod)
         {
             var standardTime = DateTime.Today.AddMonths(-timePeriod);
@@ -95,6 +104,41 @@ namespace InstagraphAddIn
             return unix;
         }
 
+        /// <summary>
+        /// Perform quarter-by-quarter parsing given Unix time into Excel worksheet.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="company">Ticker of target company.</param>
+        /// <param name="exchange">Exchange on which target company trades on.</param>
+        /// <param name="today">Unix time of today.</param>
+        /// <param name="threeMonthsPrior">Unix time of today minus three months.</param>
+        /// <param name="sixMonthsPrior">Unix time of today minus six months.</param>
+        /// <param name="nineMonthsPrior">Unix time of today minus nine months.</param>
+        /// <param name="twelveMonthsPrior">Unix time of today minus twelve months.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
+        private static async Task getAllHTMLData(Worksheet sheet, string company, string exchange, int today,
+            int threeMonthsPrior, int sixMonthsPrior, int nineMonthsPrior, int twelveMonthsPrior, int rowCount)
+        {
+            await getHTMLData(sheet, company, exchange, twelveMonthsPrior, nineMonthsPrior, rowCount); // Quarter 1
+            rowCount = sheet.UsedRange.Rows.Count;
+            await getHTMLData(sheet, company, exchange, nineMonthsPrior, sixMonthsPrior, rowCount); // Quarter 2
+
+            rowCount = sheet.UsedRange.Rows.Count;
+            await getHTMLData(sheet, company, exchange, sixMonthsPrior, threeMonthsPrior, rowCount); // Quarter 3
+
+            rowCount = sheet.UsedRange.Rows.Count;
+            await getHTMLData(sheet, company, exchange, threeMonthsPrior, today, rowCount); // Quarter 4
+        }
+
+        /// <summary>
+        /// Perform quarterly parsing given period start and end Unix times.
+        /// </summary>
+        /// <param name="sheet">Excel worksheet with pricing data.</param>
+        /// <param name="company">Ticker of target company.</param>
+        /// <param name="exchange">Exchange on which target company trades on.</param>
+        /// <param name="startDate">Unix time of period start date.</param>
+        /// <param name="endDate">Unix time of period end date.</param>
+        /// <param name="rowCount">Number of rows filled with data.</param>
         private static async Task getHTMLData(Worksheet sheet, string company, string exchange, Int32 startDate, Int32 endDate, int rowCount)
         {
             var url = "https://ca.finance.yahoo.com/quote/" + company + "." + exchange + "/history?period1=" + startDate +
@@ -104,10 +148,17 @@ namespace InstagraphAddIn
 
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(html);
-            var currRowCount = createMatrix(sheet, htmlDocument, rowCount);
+            transcribeMatrix(sheet, htmlDocument, rowCount);
         }
 
-        private static int createMatrix(Worksheet sheet, HtmlDocument htmlDocument, int rowCount)
+        /// <summary>
+        /// Parse
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="htmlDocument"></param>
+        /// <param name="rowCount"></param>
+        /// <returns></returns>
+        private static void transcribeMatrix(Worksheet sheet, HtmlDocument htmlDocument, int rowCount)
         {
             var dataHtml = htmlDocument.DocumentNode.Descendants("table")
                 .Where(node => node.GetAttributeValue("data-test", "")
@@ -118,27 +169,24 @@ namespace InstagraphAddIn
             var count = dataListItems.Count;
 
             for (int i = count - 1; i > 0; i--) {
-                if (dataListItems[i].ChildNodes.Count != 7) {
+                if (dataListItems[i].ChildNodes.Count <= 6 || dataListItems[i].ChildNodes[1].InnerText.Equals("-")) {
                     dataListItems.Remove(dataListItems[i]);
                 }
             }
-
-            var rows = new ArrayList();
+            dataListItems.Reverse();
             var endPoint = dataListItems.Count;
             for (int i = 0; i < endPoint; i++)
             {
-                var row = new ArrayList(); // matrix
                 for (int j = 0; j < 7; j++)
                 {
-                    var dataValue = dataListItems[i].ChildNodes[j].ChildNodes[0].ChildNodes[0].InnerHtml;
-                    row.Add(dataValue);
+                    var dataValue = dataListItems[i].ChildNodes[j].ChildNodes[0].InnerText;
+                    if (dataValue.Equals("-")) {
+                        dataValue = "0";
+                    }
                     Range refCell = (sheet.Cells[i + rowCount + 1, j + 1] as Range);
                     refCell.Value = dataValue;
-                }
-                
-                rows.Add(row);
+                }                
             };
-            return rows.Count;
         }
 
         static void processFile(Worksheet sheet, string company)
@@ -154,8 +202,8 @@ namespace InstagraphAddIn
             formatDataTitles(sheet);
             formatSummaryBox(sheet);
             makeChart(sheet, misValue, rowCount);
-            setSummaryBoxValues(sheet, rowCount, company);
             formatSummaryBoxValues(sheet);
+            setSummaryBoxValues(sheet, rowCount, company);
         }
 
         /// <summary>
@@ -245,11 +293,11 @@ namespace InstagraphAddIn
             }
             else if (type.Equals("price"))
             {
-                format = "_($* 0.00_);_($* (0.00);_($* '-'??_);_(@_)";
+                format = "_($* 0.00_);_($* (0.00);_(@_)";
             }
             else
             {
-                format = "_(* #,##0_);_(* (#,##0);_(* ' - '??_);_(@_)";
+                format = "_(* #,##0_);_(* (#,##0);_(@_)";
             }
             arrayRange.NumberFormat = format;
         }
@@ -379,11 +427,11 @@ namespace InstagraphAddIn
             string format;
             if (min > 10.0)
             {
-                format = "_($* 0_);_($* (0);_($* '-'??_);_(@_)";
+                format = "_($* 0_);_($* (0);_(@_)";
             }
             else
             {
-                format = "_($* 0.00_);_($* (0.00);_($* '-'??_);_(@_)";
+                format = "_($* 0.00_);_($* (0.00);_(@_)";
             }
             return format;
         }
@@ -457,14 +505,14 @@ namespace InstagraphAddIn
         /// <param name="rowCount">Number of rows filled with data.</param>
         static void setSummaryBoxValues(Worksheet sheet, int rowCount, string company)
         {
-            string lastDate = "A" + rowCount + ":A" + rowCount;
-            string lastPrice = "F" + rowCount + ":F" + rowCount;
+            // string lastDate = "A" + rowCount + ":A" + rowCount;
+            // string lastPrice = "F" + rowCount + ":F" + rowCount;
             sheet.get_Range("K13:K13", Type.Missing).Value = company;
-            sheet.get_Range("K14:K14", Type.Missing).Value = sheet.get_Range(lastDate, Type.Missing).Value;
-            sheet.get_Range("K16:K16", Type.Missing).Value = sheet.get_Range(lastPrice, Type.Missing).Value;
-            sheet.get_Range("K17:K17", Type.Missing).Value = findMax(sheet, rowCount);
-            sheet.get_Range("K18:K18", Type.Missing).Value = findMin(sheet, rowCount);
-            sheet.get_Range("K20:K20", Type.Missing).Value = Math.Round(findADTV(sheet, rowCount));
+            sheet.get_Range("K14:K14", Type.Missing).Value = "=A" + rowCount; // sheet.get_Range(lastDate, Type.Missing).Value;
+            sheet.get_Range("K16:K16", Type.Missing).Value = "=F" + rowCount; // sheet.get_Range(lastPrice, Type.Missing).Value;
+            sheet.get_Range("K17:K17", Type.Missing).Value = "=max(C2:C" + rowCount + ")"; // findMax(sheet, rowCount);
+            sheet.get_Range("K18:K18", Type.Missing).Value = "=min(D2:D" + rowCount + ")"; // findMin(sheet, rowCount);
+            sheet.get_Range("K20:K20", Type.Missing).Value = "=average(G2:G" + rowCount + ")"; // Math.Round(findADTV(sheet, rowCount));
         }
 
         /// <summary>
@@ -494,10 +542,10 @@ namespace InstagraphAddIn
         {
             sheet.get_Range("K13:K13", Type.Missing).HorizontalAlignment = XlHAlign.xlHAlignRight; // Company
             sheet.get_Range("K14:K14", Type.Missing).NumberFormat = "m/d/yyyy"; // Date
-            sheet.get_Range("K16:K16", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_($* '-'??_);_(@_)"; // Last price
-            sheet.get_Range("K17:K17", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_($* '-'??_);_(@_)"; // High
-            sheet.get_Range("K18:K18", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_($* '-'??_);_(@_)"; // Low
-            sheet.get_Range("K20:K20", Type.Missing).NumberFormat = "_(* #,##0_);_(* (#,##0);_(* ' - '??_);_(@_)"; // ADTV
+            sheet.get_Range("K16:K16", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_(@_)"; // Last price
+            sheet.get_Range("K17:K17", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_(@_)"; // High
+            sheet.get_Range("K18:K18", Type.Missing).NumberFormat = "_($* 0.00_);_($* (0.00);_(@_)"; // Low
+            sheet.get_Range("K20:K20", Type.Missing).NumberFormat = "_(* #,##0_);_(* (#,##0);_(@_)"; // ADTV
         }
 
 
