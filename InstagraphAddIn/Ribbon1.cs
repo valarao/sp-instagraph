@@ -8,6 +8,7 @@ using HtmlAgilityPack;
 using System.Net.Http;
 using System.Collections;
 using System.Threading.Tasks;
+using Microsoft.VisualBasic;
 
 namespace InstagraphAddIn
 {
@@ -23,17 +24,16 @@ namespace InstagraphAddIn
 
         private async void btnIntagraph_Click(object sender, RibbonControlEventArgs e)
         {
-            Application excel = new Application();
             Worksheet sheet = Globals.ThisAddIn.GetActiveWorksheet();
-            string company = excel.Application.InputBox("What is the company's ticker?").ToUpper();
-            string exchange = excel.Application.InputBox("What exchange is it on? (NYSE, NASDAQ, TSX, CVE)").ToUpper();
+            string company = Interaction.InputBox("What is the company's ticker?", "Company", "Company", -1, -1).ToUpper();
+            string exchange = Interaction.InputBox("What exchange is it on? (NYSE, NASDAQ, TSX, CVE)", "Exchange", "Exchange", -1, -1).ToUpper();
+
             exchange = checkExchange(exchange);
-            if (company != "" && company != null && exchange != null) { 
+            if (company != "" && company != null && exchange != null && !exchange.Equals("cancel")) { 
                 setTitles(sheet);
                 await parseData(sheet, company, exchange);
                 processFile(sheet, company);
             }
-
         }
 
         /// <summary>
@@ -46,11 +46,18 @@ namespace InstagraphAddIn
             if (exchange.Equals("TSX") || exchange.Equals("TSE") || exchange.Equals("TO"))
             {
                 return "TO";
-            } else if (exchange.Equals("CVE") || exchange.Equals("V")) {
+            }
+            else if (exchange.Equals("CVE") || exchange.Equals("V"))
+            {
                 return "V";
             }
-            else {
+            else if (exchange.Equals("NASDAQ") || exchange.Equals("NYSE"))
+            {
                 return "";
+            }
+            else
+            {
+                return "cancel";
             }
         }
 
