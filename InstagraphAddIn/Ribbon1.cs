@@ -30,9 +30,12 @@ namespace InstagraphAddIn
 
             exchange = checkExchange(exchange);
             if (company != "" && company != null && exchange != null && !exchange.Equals("cancel")) { 
-                setTitles(sheet);
-                await parseData(sheet, company, exchange);
-                processFile(sheet, company);
+                var valid = await checkURL(company, exchange);
+                if (valid) { 
+                    setTitles(sheet);
+                    await parseData(sheet, company, exchange);
+                    processFile(sheet, company);
+                }
             }
         }
 
@@ -60,6 +63,30 @@ namespace InstagraphAddIn
                 return "cancel";
             }
         }
+
+        /// <summary>
+        /// Check to see if the URL is valid for parsing.
+        /// </summary>
+        /// <param name="company">Ticker of target company.</param>
+        /// <param name="exchange">Exchange on which target company trades on.</param>
+        /// <returns>URL validity.</returns>
+        private static async Task<bool> checkURL(string company, string exchange)
+        {
+            var url = "https://ca.finance.yahoo.com/quote/" + company + "." + exchange + "/history";
+
+            var httpClient = new HttpClient();
+            var html = await httpClient.GetStringAsync(url);
+
+            var htmlDocument = new HtmlDocument();
+            htmlDocument.LoadHtml(html);
+
+            var dataHtml = htmlDocument.DocumentNode.Descendants("table")
+                .Where(node => node.GetAttributeValue("data-test", "")
+                .Equals("historical-prices")).ToList();
+
+            return dataHtml.Count == 1;
+        }
+
 
         /// <summary>
         /// Set titles for data arrays: Date, Open, High, Low, Close, Adj Close, Volume.
