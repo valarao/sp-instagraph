@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Collections;
 using System.Threading.Tasks;
 using Microsoft.VisualBasic;
+using System.Net;
 
 namespace InstagraphAddIn
 {
@@ -27,9 +28,10 @@ namespace InstagraphAddIn
             Worksheet sheet = Globals.ThisAddIn.GetActiveWorksheet();
             string company = Interaction.InputBox("What is the company's ticker?", "Company", "Company", -1, -1).ToUpper();
             string exchange = Interaction.InputBox("What exchange is it on? (NYSE, NASDAQ, TSX, CVE)", "Exchange", "Exchange", -1, -1).ToUpper();
-
             exchange = checkExchange(exchange);
-            if (company != "" && company != null && exchange != null && !exchange.Equals("cancel")) { 
+
+
+            if (company != "" && company != null && exchange != null && !exchange.Equals("cancel") && CheckForInternetConnection()) { 
                 var valid = await checkURL(company, exchange);
                 if (valid) { 
                     setTitles(sheet);
@@ -61,6 +63,26 @@ namespace InstagraphAddIn
             else
             {
                 return "cancel";
+            }
+        }
+
+        /// <summary>
+        /// Check if there is Internet connection.
+        /// </summary>
+        /// <returns>True if Internet connection is available, false otherwise.</returns>
+        public static bool CheckForInternetConnection()
+        {
+            try
+            {
+                using (var client = new WebClient())
+                using (client.OpenRead("http://clients3.google.com/generate_204"))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 
